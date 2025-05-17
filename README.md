@@ -6,3 +6,6 @@ This Portfolio contains Data Science and Data Analysis projects I have done for 
 Email: kmdunn@umass.edu
 
 LinkedIn: https://www.linkedin.com/in/kaelamdunn
+
+CITI Training Certificate - Human Research Social and Behavioral Research Investigators and Key Personnel
+CITI Certificate.pdf
