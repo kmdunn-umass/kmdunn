@@ -1,4 +1,4 @@
-# Kaela Dunn
+# Kaela Dunn, MS DACSS Student @ UMass Amherst
 Data Science Portfolio
 
 This Portfolio contains Data Science and Data Analysis projects I have done for academic, self-learning and hobby purposes. This portfolio also contains my academic work and certificates. 
