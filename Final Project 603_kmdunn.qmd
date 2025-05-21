@@ -1,0 +1,421 @@
+---
+title: "Final Project 603"
+author: "Kaela Dunn"
+date: last-modified
+format: 
+  html:
+    page-layout: full
+    toc: true
+    toc-location: right
+    embed-resources: true
+    self-contained-math: true
+---
+
+### Introduction, Research Question, and Hypothesis
+
+#### Introduction
+
+In 2015 the federal United States government implemented the Every Student Success Act (ESSA) requiring states to identify additional metrics of their choice to measure student success. Many states, including Massachusetts, identified student absenteeism as a metric to track and report on in an effort to reduce chronic absenteeism and improve overall student success (Garcia & Weiss, 2018) (Kane, 2014). In Massachusetts, a student is considered chronically absent if they are not in attendance for at least 10% of the total number of school days while a member of a respective school district (Kane, 2014) (Massachusetts Department of Education, 2025). To further the definition, a Massachusetts public school district is one or more public schools functioning under the same supervision from a school committee and a superintendent or two or more municipalities collaborating to create a public regional school district. A public school district in Massachusetts does not include charter, collaborative, superintendency union and vocational districts. (MassGIS Data: Public School Districts, 2025). With Massachusetts accountable for student success and reducing chronic absenteeism rates throughout school districts, further investigation and implementation of an effective intervention is necessary. To address many needs throughout the communities of Massachusetts, the Family Resource Center (FRC) network opened in 2015. When initially implemented, 18 physical centers throughout Massachusetts were opened with 15 additional centers opening throughout the years until 2024. This network of community-based centers offers an extensive variation of services, referrals, and community engagement opportunities. The FRC network is still relatively new and growing but has become known in communities throughout the state. The centers in 2023 in total serviced 30,616 individual family members. Although this network was created to address a plethora of needs, such as truancy, there was intention to connect these centers to their local school systems. Each center is equipped with a School Liaison that focuses on providing direct support and advocacy to families in the local school system. Of all 130,139 services provided by the network in 2023, 18% were school issues or school information related. Beyond the school related efforts the FRCs have, they also provide family support and community engagement opportunities that are recognized as protective factors for chronic absenteeism. For example, in 2023 the network experienced a cumulative total of 44,950 attendances at food/material drives and 27,402 attendances at recreational activities/cultural events (Swan, Pratt, Fishman, Tedesco, & Kamins, 2024) (UMass Chan Medical School, 2025). Considering the FRCs supply their communities with these protective factors and school supports, it is worth investigating their impact on public school district chronic absenteeism rates.
+
+#### Research Question and Hypothesis
+
+Research Question: How does the presence of Family Resource Centers (FRCs) in Massachusetts public school districts effect chronic absenteeism rates?
+
+Hypothesis: School districts with Family Resource Centers (FRCs) experience lower chronic absenteeism rates compared to districts without FRCs.
+
+### Reading in the Data
+
+```{r, warning = FALSE, message = FALSE}
+# Loading in packages needed.
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
+library(stargazer)
+library(GGally)
+library(car) 
+
+# Reading in a data set of all MA FRC locations. 
+frc <- read_xlsx("FRC Locations.xlsx")
+glimpse(frc)
+
+# Reading in a data set of all MA Public School District Information.
+districts <- read_xlsx("public school district info.xlsx")
+glimpse(districts)
+```
+
+#### Data set and Column Descriptions
+
+The FRC Locations data set was manually compiled based on the location information provided on the FRC website. The list of active FRCs for the 2023 to 2024 school year was validated against the 2023 and 2024 Annual FRC Evaluation Reports. The data set contains 4 variables and 32 rows. The columns are:
+
+-   `School Year`: The academic year the FRC location was operational.
+-   `FRC`: The name of the FRC location.
+-   `Town Name`: The town the FRC site is located.
+-   `Zip Code`: The zip code for the location of the FRC.
+
+The MA Public School District Information data set was manually created by merging five distinct data sets exported from the Massachusetts Department of Elementary and Secondary Education (DESE) website. The data set contains 17 variables and 290 rows. The columns are:
+
+-   `School Year`: The academic year the data was observed.
+-   `District Name`: The name of the public school district.
+-   `District Town`: The town the public school district is located.
+-   `District Zip Code`: The zip code for the public school district.
+-   `Chronically Absent (10% or more)`: The percentage of students absent for 10% or more of the school year.
+-   `Low Income#`: The number of students identified as low income.
+-   `Low Income%`: The percentage of students identified as low income.
+-   `Students with Disabilities#`: The number of students with disabilities.
+-   `Students with Disabilities%`: The percentage of students with disabilities.
+-   `students_ssdr`: The number of students enrolled as reported in the School Safety and Discipline Report (SSDR).
+-   `Students Disciplined`: The number of students subject to disciplinary action.
+-   `Students Disciplined%`: The percentage of students subject to disciplinary action.
+-   `% 1 Day`: The percentage of students absent for 1 day due to disciplinary actions.
+-   `% 2 to 3 Days`: The percentage of students absent for 2-3 days due to disciplinary actions.
+-   `% 4 to 7 Days`: The percentage of students absent for 4-7 days due to disciplinary actions.
+-   `% 8 to 10 Days`: The percentage of students absent for 8-10 days due to disciplinary actions.
+-   `% > 10 Days`: The percentage of students absent for more than 10 days due to disciplinary actions.
+
+### Tidying the Data for Analysis
+
+For the analysis we will need to create a binary explanatory variable to represent school districts with an FRC, 1, and school districts without an FRC, 0. I will do so in the `districts` data set and use the `frc` data set to reference the FRC locations.
+
+```{r}
+df <- districts |>
+  mutate(frc_present = if_else(
+    str_detect(`District Name`, "Amherst") |
+    str_detect(`District Name`, "Athol") |
+    str_detect(`District Name`, "Attleboro$") |
+    str_detect(`District Name`, "Boston") |
+    str_detect(`District Name`, "Brockton") |
+    str_detect(`District Name`, "Chelsea") |
+    str_detect(`District Name`, "Everett") |
+    str_detect(`District Name`, "Fall River") |
+    str_detect(`District Name`, "Fitchburg") |
+    str_detect(`District Name`, "Framingham") |
+    str_detect(`District Name`, "Gardner") |
+    str_detect(`District Name`, "Great Barrington") |
+    str_detect(`District Name`, "Greenfield") |
+    str_detect(`District Name`, "Holyoke") |
+    str_detect(`District Name`, "Hyannis") |
+    str_detect(`District Name`, "Lawrence") |
+    str_detect(`District Name`, "Lowell") |
+    str_detect(`District Name`, "Lynn$") |
+    str_detect(`District Name`, "Nantucket") |
+    str_detect(`District Name`, "New Bedford$") |
+    str_detect(`District Name`, "North Adams$") |
+    str_detect(`District Town`, "Vineyard") |
+    str_detect(`District Name`, "Pittsfield") |
+    str_detect(`District Name`, "Plymouth") |
+    str_detect(`District Name`, "Quincy") |
+    str_detect(`District Name`, "Salem$") |
+    str_detect(`District Name`, "Southbridge") |
+    str_detect(`District Name`, "^Springfield$") |
+    str_detect(`District Name`, "Taunton") |
+    str_detect(`District Name`, "Ware$") |
+    str_detect(`District Name`, "Westfield") |
+    str_detect(`District Name`, "Worcester"),
+    1, 0))
+
+# Ensuring variables are recognized as numeric.
+df$`Chronically Absent` <- as.numeric(df$`Chronically Absent`)
+df$`% > 10 Days` <- as.numeric(df$`% > 10 Days`)
+df$`Low Income%` <- as.numeric(gsub(",", "", df$`Low Income%`))
+df$`Students with Disabilities%` <- as.numeric(gsub(",", "", df$`Students with Disabilities%`))
+df$`Students Disciplined%` <- as.numeric(gsub(",", "", df$`Students Disciplined%`))
+df$`frc_present` <- as.numeric(gsub(",", "", df$`frc_present`))
+
+# Ensuring variable is recognized as a factor.
+df$frc_present <- factor(df$frc_present)
+```
+
+### Descriptive Statistics and Variable Summary
+
+#### Descriptive Statistics
+
+Let's get a visual of the final data set we will conduct analysis on.
+
+```{r}
+#Summary of final data set.
+summary(df)
+glimpse(df)
+```
+
+Since creating the binary explanatory variable, `frc_present`, there are now 290 observations and 18 variables in my final data set.
+
+As noted in the "Data set and Column Descriptions" section above, all data used is only from the 2023 to 2024 school year as seen in the `school year` column.
+
+#### Explanatory Variable
+
+First let's get an understanding of the difference between the number of Public School Districts in respect to the number of FRC locations in Massachusetts.
+
+```{r}
+# Pivoting both datasets to get total counts.
+dcount <- districts |>
+  pivot_longer(cols = `District Name`, 
+               names_to = "Public School Districts", 
+               values_to = "Count")
+
+frccount <- frc |>
+  pivot_longer(cols = `FRC`, 
+               names_to = "FRC Locations", 
+               values_to = "Count")
+
+# Counts of MA Public School Districts and FRC Locations.
+dc <- dcount |> 
+  count(`Public School Districts`) |> 
+  mutate(Datasets = "Public School Districts")
+
+fc <- frccount |> 
+  count(`FRC Locations`) |> 
+  mutate(Datasets = "FRC Network Locations")
+
+# Combining total counts.
+both <- bind_rows(dc, fc)
+
+# Graphing the counts from each dataset.
+ggplot(both, aes(x = Datasets, y = n, fill = Datasets)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Datasets", y = "Count", 
+       title = "Total Count of MA FRC Locations and Public School Districts")
+```
+
+There are 258 more public school districts than there are Family Resource Centers during the 2023 to 2024 school year. The large difference is noteworthy because of the potential impact on modeling where it may be difficult distinguishing between the two and may lead to unreliable estimators.
+
+Now let's visualize the explanatory variable: the presence of an FRC in a public school district.
+
+```{r}
+# Creating a count of the binary code.
+frcpc <- df |>
+  count(frc_present)
+
+# Creating the pie chart using the binary code count.
+ggplot(frcpc, aes(x = "", y = n, fill = frc_present)) +
+  geom_bar(stat = "identity", width = 1, show.legend = TRUE) +
+  coord_polar(theta = "y") +  
+ labs(title = "Distribution of Public School Districts with and without an FRC") +
+  theme_void() +
+  theme(legend.title = element_text(size = 10)) +  
+  labs(fill = "Legend") +
+  scale_fill_manual(
+    values = c("1" = "pink", "0" = "darkblue"), 
+    labels = c("1" = "Districts with an FRC", "0" = "Districts without an FRC"))
+```
+
+
+There are 255 public school districts without an FRC and 35 public school districts with an FRC present in the district.
+
+#### Dependent Variable
+
+Chronic absenteeism rates is the dependent variable.
+
+The public-school districts’ chronic absenteeism data is reported as a percentage per 100 students enrolled. A student is included in this percentage when the student was absent 10% or more of the student’s total number of school days while a member of a respective school district (Massachusetts Department of Education, 2025).
+
+```{r}
+hist(df$`Chronically Absent`, col = "darkgreen", main = "Chronic Absenteeism Rates 
+     Distribution", xlab = "Chronic Absenteeism")
+```
+
+#### Control Variables
+
+The percentage of students subject to disciplinary action is a control variable.
+
+Students experiencing disciplinary action may miss days at school due to committing an offense, but not all students experiencing disciplinary action are missing days at school due to committing an offense.
+
+```{r}
+hist(df$`Students Disciplined%`, col = "darkorange", main = "Distribution of % of Students Disciplined", 
+     xlab = "Students Disciplined")
+```
+
+Students identified as low income is a control variable.
+
+"Low Income" is calculated based on a student's participation in one or more of the following state-administered programs: the Supplemental Nutrition Assistance Program (SNAP); the Transitional Assistance for Families with Dependent Children (TAFDC); the Department of Children and Families' (DCF) foster care program; expanded MassHealth (Medicaid) up to 185% of the federal poverty level, as well as students identified by districts as homeless and students the district confirmed had met the low-income criteria through the supplemental process and collected the required supporting documentation (Massachusetts Department of Education, 2025).
+
+```{r}
+hist(df$`Low Income%`, col = "purple", main = "Distribution of % of Students Identified as Low Income", 
+     xlab = "Students Identified as Low Income")
+```
+
+Students with disabilities is a control variable.
+
+Students with Disabilities is calculated based on the enrollment of students who have an Individualized Education Program (IEP) (Massachusetts Department of Education, 2025).
+
+```{r}
+hist(df$`Students with Disabilities%`, col = "darkred", main = "Distribution of % of Students with 
+     Disabilities", xlab = "Students with Disabilities")
+```
+
+#### Correlations Between Variables
+
+Now we will visualize the correlation of all variables.
+
+```{r, warning = FALSE, message = FALSE}
+# Subset the desired variables
+pairs_df <- df[, c("Students Disciplined%", "Low Income%", "Chronically Absent", 
+                   "Students with Disabilities%", "frc_present")]
+
+pairs_df$frc_present <- factor(pairs_df$frc_present, levels = c(0, 1), labels = c("No FRC", "Has FRC"))
+
+ggpairs(pairs_df, 
+        aes(color = frc_present, alpha = 1)) +
+  theme(
+    axis.text = element_text(size = 6),  
+    axis.title = element_text(size = 7),  
+    strip.text = element_text(size = 7), 
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7))
+```
+
+```{r}
+# Subsetting the desired variables.
+pairs_df <- df[, c("Students Disciplined%","Low Income%", "Chronically Absent", 
+                   "Students with Disabilities%", "frc_present")]
+
+# Creating a colorful scatterplot matrix. 
+pairs(pairs_df, col = rainbow(length(pairs_df)), pch = 19)
+```
+
+It appears chronic absenteeism may be correlated to students identified as low income.
+
+### Running Multiple Models
+
+A simple linear regression model with chronic absenteeism and FRC presence in public school districts.
+
+```{r}
+model1 <- lm(`Chronically Absent` ~ `frc_present`, data = df)
+summary(model1)
+
+par(mfrow = c(2, 2))
+plot(model1)
+```
+
+A second simple linear regression model with chronic absenteeism and FRC presence in public school districts controlling for students subject to disciplinary action.
+
+```{r}
+model2 <- lm(`Chronically Absent` ~ `frc_present` + `Low Income%`, data = df)
+
+summary(model2)
+par(mfrow = c(2, 2))
+plot(model2)
+```
+
+A third simple linear regression model with chronic absenteeism and FRC presence in public school districts controlling for students subject to disciplinary action and students with disabilities.
+
+```{r}
+model3 <- lm(`Chronically Absent` ~ `frc_present` + `Low Income%` + `Students Disciplined%`, data = df)
+
+summary(model3)
+par(mfrow = c(2, 2))
+plot(model3)
+```
+
+A fourth simple linear regression model with chronic absenteeism and FRC presence in public school districts controlling for students subject to disciplinary action, students with disabilities, and students identified as low income.
+
+```{r}
+model4 <- lm(`Chronically Absent` ~ `frc_present` +  `Low Income%` + `Students Disciplined%` + 
+               `Students with Disabilities%`, data = df)
+
+summary(model4)
+par(mfrow = c(2, 2))
+plot(model4)
+```
+
+A fifth simple linear regression model with chronic absenteeism and FRC presence in public school districts controlling for students identified as low income.
+
+```{r}
+model5 <- lm(`Chronically Absent` ~ `frc_present` + `Students Disciplined%` + 
+               `Students with Disabilities%`, data = df)
+
+summary(model5)
+par(mfrow = c(2, 2))
+plot(model5)
+```
+
+#### Variance Inflation Factor
+
+Checking the variance inflation factor for the models to ensure that the predictors are not highly collinear with each other.
+
+We are looking for low VIF values, espcially under 10. 
+
+```{r}
+vif(model2)
+vif(model3)
+vif(model4)
+vif(model5)
+```
+
+It appears all VIF values for our models are below 2.18 suggesting there is no significant correlation between the predictors, meaning our models do not have issues with collinearity.
+
+#### Model Comparison
+
+To identify the best model out of the ones created, we will evaluate the models for the following: a) R-squared b) Adjusted R-squared c) PRESS d) AIC (Akaike Information Criterion) e) BIC (Bayesian Information Criterion).
+
+In the model selection process, we will be looking for higher R-squared and Adjusted R-square values along with lower PRESS, AIC, and BIC values.
+
+```{r}
+# Creating functions to produce R-squared, Adjusted R-squared, and PRESS.
+rsquared <- function(fit) summary(fit)$r.squared
+adj_rsquared <- function(fit) summary(fit)$adj.r.squared
+PRESS <- function(fit) {
+  pr <- residuals(fit)/(1-lm.influence(fit)$hat)
+  sum(pr^2)}
+
+models <- list(model1, model2, model3, model4, model5)
+model_comparison <- data.frame(models = c('model1', 'model2', 'model3', 'model4', 'model5'),
+           rSquared = sapply(models, rsquared),
+           adj_rSquared = sapply(models, adj_rsquared),
+           PRESS = sapply(models, PRESS),
+           AIC = sapply(models, AIC),
+           BIC = sapply(models, BIC)) |>
+  print()
+```
+
+Model1 and Model5 are not the best models as they have the lowest R-squared values along with the highest PRESS, AIC, and BIC values. Following those two models, we see Model2 has similar values so that is also not the best choice.
+
+Model3 and Model4 are both considerable. They have the highest, and very similar, R-squared values. It looks like Model4 has a slightly higher R-squared value than Model3, however, Model3 has a slightly higher adjusted R-squared value. Additionally, Model3 has distinctively lower PRESS, AIC, and BIC values.
+
+Considering all metrics, Model3 is the best model.
+
+#### Stargazer Output
+
+```{r, warning = FALSE, message = FALSE}
+stargazer(model1, model2, model3, model4, model5, type="text")
+```
+
+
+FRC presence in a public school district (`frc_present1`) shows a positive and significant relationship with chronic absenteeism across all five models suggesting the presence of an FRC increases chronic absenteeism. Students identified as low income (`Low Income%`) also has a significant positive relationship with chronic absenteeism, especially in Model2, Model3, and Model4. Students subject to disciplinary action (`StudentsDisciplined%`) and students with disabilities (`Students with Disabilities%`) appear to have a strong positive relationship with chronic absenteeism in Model5.
+
+Overall, Model3 still looks like the best overall fit with it's strong explanatory power and minimal overfitting.
+
+### Final Model Selection and Interpretation
+
+Out of the 5 models run, model3 is the best fit.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(model3)
+```
+
+In the Residuals vs Fitted plot, Model3 has a random, horizontal spread of residuals, but we do see some deviation of points around the tails in the Normal Q-Q plot. Points on the Scale-Location tend to group towards the left side of the plot. On the Residuals vs Leverage plot we are again seeing a lot of points plotted on the left-center area of the plot.
+
+Overall, model3 linearity and leverage are good, but there are some concerns regarding non-normality of residuals and potential heteroscedasticity.
+
+### Conclusion
+
+The model built displays that an FRC's presence in a public school district does not decrease the school district's chronic absenteeism rates. In fact, it displays that chronic absenteeism rates are higher in public school districts with an FRC than in public school districts without an FRC.
+
+### References
+
+Garcia, E., & Weiss, E. (2018, 9 25). Student Absenteeism: Who Misses School and How Missing School Matters for Performance. Education Resources Information Center, 33. Retrieved from https://eric.ed.gov/?id=ED593361
+
+Kane, D. (2014, 10 1). Reducing chronic absenteeism. Retrieved from Massachusetts Education-to-Career Research and Data Hub: https://educationtocareer.data.mass.gov/stories/s/Reducing-chronic-absenteeism-in-our-schools/vuut-f46x/#what-is-chronic-absenteeism
+
+Massachusetts Department of Education. (2025, 2 28). 2023-24 (End of year) Attendance Report (District) - All Students. Retrieved from Department of Elementary and Secondary Education School and District Profiles: https://profiles.doe.mass.edu/statereport/attendance.aspx
+
+Massachusetts Department of Education. (2025, 28 2). 2024 Official Accountability Report - State Totals. Retrieved from Department of Elementary and Secondary Education School and District Profiles: https://profiles.doe.mass.edu/accountability/report/district.aspx?linkid=30&orgcode=00000000&orgtypecode=0&
+
+Massachusetts Department of Education. (2025, 2 28). Profiles Help - About the Data. Retrieved from Department of Elementary and Secondary Education School and District Profiles: https://profiles.doe.mass.edu/help/data.aspx?section=students#indicators
+
+MassGIS Data: Public School Districts. (2025, 3 6). Retrieved from Mass.gov: https://www.mass.gov/info-details/massgis-data-public-school-districts
+
+Swan, H., Pratt, C., Fishman, J., Tedesco, R., & Kamins, K. (2024). Massachusetts Family Resource Center 2023 Program Evaluation Report. Shrewsbury, MA: ForHealth Consulting at UMass Chan Medical School. Retrieved from https://www.mass.gov/doc/massachusetts-family-resource-centers-annual-evaluation-march-2024/download
+
+UMass Chan Medical School. (2025, 2 28). Locations. Retrieved from Family Resource Centers: https://www.Family Resource Centerma.org/locations/
